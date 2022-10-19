@@ -29,7 +29,7 @@ int HondaKLine::dlcCommand(uint8_t cmd, uint8_t num, uint8_t loc, uint8_t len) {
 
   memset(dlcData, 0, sizeof(dlcData));
 
-  // s_klineSerial.listen();
+  // s_klineSerial.listen(); // doesn't seem necessary
 
   s_klineSerial.write(cmd);  // header/cmd read memory ??
   s_klineSerial.write(num);  // num of bytes to send
