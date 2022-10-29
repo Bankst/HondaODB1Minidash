@@ -55,16 +55,18 @@ public:
   HondaKLine(const uint8_t klinePin);
 
   void init();
-  void updateEcuData();
+  int updateEcuData();
   void scanDtcErrors();
   void resetEcu();
 
-  BasicEcuData_t getEcuData() { return m_ecuData; }
-  ExtraEcuData_t getExtraData() { return m_extraData; }
+  BasicEcuData_t * getEcuData() { return &m_ecuData; }
+  ExtraEcuData_t * getExtraData() { return &m_extraData; }
 
 private: // methods
   int dlcCommand(uint8_t cmd, uint8_t num, uint8_t loc, uint8_t len);
 private: // variables
+  const uint8_t k_writeDelay = 1;
+
   const uint8_t m_klinePin;
   // SoftwareSerialWithHalfDuplex *m_klineSerial;
 

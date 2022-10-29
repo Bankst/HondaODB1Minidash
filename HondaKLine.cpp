@@ -8,34 +8,47 @@ HondaKLine::HondaKLine(const uint8_t klinePin)
 
 void HondaKLine::init() {
   s_klineSerial.write(0x68);
+  delay(k_writeDelay);
   s_klineSerial.write(0x6a);
+  delay(k_writeDelay);
   s_klineSerial.write(0xf5);
+  delay(k_writeDelay);
   s_klineSerial.write(0xaf);
+  delay(k_writeDelay);
   s_klineSerial.write(0xbf);
+  delay(k_writeDelay);
   s_klineSerial.write(0xb3);
+  delay(k_writeDelay);
   s_klineSerial.write(0xb2);
+  delay(k_writeDelay);
   s_klineSerial.write(0xc1);
+  delay(k_writeDelay);
   s_klineSerial.write(0xdb);
+  delay(k_writeDelay);
   s_klineSerial.write(0xb3);
+  delay(k_writeDelay);
   s_klineSerial.write(0xe9);
-
-  delay(300);  // ???
+  delay(k_writeDelay);
 }
 
 int HondaKLine::dlcCommand(uint8_t cmd, uint8_t num, uint8_t loc, uint8_t len) {
   uint8_t crc = (0xFF - (cmd + num + loc + len - 0x01)); // checksum FF - (cmd + num + loc + len - 0x01)
-
-  unsigned long timeout = millis() + 30; // 30ms timeout
-
   memset(dlcData, 0, sizeof(dlcData));
 
   // s_klineSerial.listen(); // doesn't seem necessary
 
   s_klineSerial.write(cmd);  // header/cmd read memory ??
+  delay(k_writeDelay);
   s_klineSerial.write(num);  // num of bytes to send
+  delay(k_writeDelay);
   s_klineSerial.write(loc);  // address
+  delay(k_writeDelay);
   s_klineSerial.write(len);  // num of bytes to read
+  delay(k_writeDelay);
   s_klineSerial.write(crc);  // checksum
+  delay(k_writeDelay);
+
+  unsigned long timeout = millis() + 30; // 30ms timeout
 
   int i = 0;
   while (i < (len + 3) && millis() < timeout) {
@@ -60,14 +73,33 @@ int HondaKLine::dlcCommand(uint8_t cmd, uint8_t num, uint8_t loc, uint8_t len) {
    if (crc != dlcData[len + 2]) {
     return -2;
    }
-   return 1; // success
+   return 0; // success
 }
 
-
-void HondaKLine::updateEcuData() {
+// #define KLINE_DEBUG
+int HondaKLine::updateEcuData() {
+  int ret = 0;
   float f = 0;
 #if 1
-  if (dlcCommand(0x20, 0x05, 0x00, 0x10)) { // row 1
+  int row1Ret = dlcCommand(0x20, 0x05, 0x00, 0x10);
+  #ifdef KLINE_DEBUG
+    if (row1Ret < 0) {
+      // Serial.print("FAIL, ");
+      // Serial.println(row1Ret == -1 ? "timeout" : "checksum");
+    } else {
+      Serial.print("KLINE_DEBUG(ROW1): ");
+      Serial.print("{ ");
+      for (uint8_t i = 0; i < sizeof(dlcData); i++) {
+        Serial.print(dlcData[i]);
+        if (i != (sizeof(dlcData) - 1)) {
+          Serial.print(", ");
+        }
+      }
+      Serial.println(" }");
+    }
+  #endif // KLINE_DEBUG
+
+  if (row1Ret == 0) { // row 1
     // calculate RPM
     int rpm = 0;
     if (obd_select == 1) rpm = 1875000 / (dlcData[2] * 256 + dlcData[3] + 1);
@@ -84,13 +116,33 @@ void HondaKLine::updateEcuData() {
     m_ecuData.airconSwitch = bitRead(dlcData[10], 2);
     m_ecuData.vtecSwitch = bitRead(dlcData[12], 3);
   } else {
-    m_ecuData.engineRpm = 0;
-    m_ecuData.vehicleSpeedSensor = 0;
-    m_ecuData.airconSwitch = false;
-    m_ecuData.vtecSwitch = false;
+    // m_ecuData.engineRpm = 0;
+    // m_ecuData.vehicleSpeedSensor = 0;
+    // m_ecuData.airconSwitch = false;
+    // m_ecuData.vtecSwitch = false;
+    return row1Ret;
   }
 
-  if (dlcCommand(0x20, 0x05, 0x10, 0x10)) { // row 2
+  int row2Ret = dlcCommand(0x20, 0x05, 0x10, 0x10);
+
+  #ifdef KLINE_DEBUG
+    if (row2Ret < 0) {
+      // Serial.print("FAIL, ");
+      // Serial.println(row2Ret == -1 ? "timeout" : "checksum");
+    } else {
+      Serial.print("KLINE_DEBUG(ROW2): ");
+      Serial.print("{ ");
+      for (uint8_t i = 0; i < sizeof(dlcData); i++) {
+        Serial.print(dlcData[i]);
+        if (i != (sizeof(dlcData) - 1)) {
+          Serial.print(", ");
+        }
+      }
+      Serial.println(" }");
+    }
+  #endif // KLINE_DEBUG  
+
+  if (row2Ret == 0) { // row 2
     // calculate engine coolant temp
     f = dlcData[2];
     if (f == 0) m_ecuData.engineCoolantTemp = 0;
@@ -127,21 +179,22 @@ void HondaKLine::updateEcuData() {
     // calculate
     m_ecuData.iacvDutycycle = dlcData[10] / 2.55;
   } else {
-    m_ecuData.engineCoolantTemp = 0;
-    m_ecuData.intakeAirTemp = 0;
-    m_ecuData.mapPsi = 0;
-    m_ecuData.barometerPsi = 0;
-    m_ecuData.throttlePos = 0;
-    m_ecuData.o2Voltage = 0;
-    m_ecuData.systemVoltage = 0;
-    m_ecuData.unk_lmt = 0;
-    m_ecuData.iacvDutycycle = 0;
+    // m_ecuData.engineCoolantTemp = 0;
+    // m_ecuData.intakeAirTemp = 0;
+    // m_ecuData.mapPsi = 0;
+    // m_ecuData.barometerPsi = 0;
+    // m_ecuData.throttlePos = 0;
+    // m_ecuData.o2Voltage = 0;
+    // m_ecuData.systemVoltage = 0;
+    // m_ecuData.unk_lmt = 0;
+    // m_ecuData.iacvDutycycle = 0;
+    return row2Ret;
   }
 
-  if (dlcCommand(0x20, 0x05, 0x30, 0x10)) { // row 4
+  if (dlcCommand(0x20, 0x05, 0x30, 0x10) == 0) { // row 4
     m_ecuData.knockSensor = dlcData[14] / 51; // range 0-5;
   } else {
-    m_ecuData.knockSensor = 0;
+    // m_ecuData.knockSensor = 0;
   }
 #else
   m_ecuData.engineRpm = random(500, 1500);
@@ -163,6 +216,7 @@ void HondaKLine::updateEcuData() {
     int imap = m_ecuData.engineRpm * m_ecuData.mapPsi / (m_ecuData.intakeAirTemp + 273) / 2;
     int maf = (imap / 60) * (80 / 100) * 1.595 * 28.9644 / 8.314472;
   }
+  return 0;
 }
 
 void HondaKLine::scanDtcErrors() {

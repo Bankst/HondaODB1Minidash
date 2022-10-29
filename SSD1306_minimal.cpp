@@ -219,7 +219,7 @@ void SSD1306_Mini::printChar( char ch ){
 }
 
 
-void SSD1306_Mini::printString( char * pText ){
+void SSD1306_Mini::printString(const char * pText ){
   unsigned char i;
   unsigned char len = strlen( pText );
 

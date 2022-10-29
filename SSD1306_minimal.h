@@ -123,7 +123,7 @@ public:
   void printChars(char ch, uint8_t num); // print one char many times
 
   // print a string to the screen
-  void printString( char * pText );
+  void printString( const char * pText );
 
   // draw an image with defined x,y position and width,height definition
   void drawImage( const unsigned char * img, unsigned char col, unsigned char row, unsigned char w, unsigned char h );
